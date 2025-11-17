@@ -1,5 +1,6 @@
 {
   "name": "devvio-auth-proxy",
   "version": "1.0.0",
-  "description": "Vercel proxy for Devvio API to handle CORS"
+  "description": "Vercel proxy for Devvio API to handle CORS",
+  "type": "module"
 }
