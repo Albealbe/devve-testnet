@@ -104,13 +104,37 @@
             <!-- ===== Dashboard View (Logged In) ===== -->
             <div id="dashboard-view" class="view hidden">
                 <h2 class="text-2xl font-semibold text-center text-green-600 mb-4">Login Successful!</h2>
-                <div class="bg-gray-50 p-4 rounded-lg space-y-2 break-words">
+                
+                <!-- User Info -->
+                <div class="bg-gray-50 p-4 rounded-lg space-y-2 break-words mb-6">
                     <p><strong>Email:</strong> <span id="dash-email"></span></p>
                     <p><strong>Username:</strong> <span id="dash-username"></span></p>
                     <p><strong>Wallet (pub):</strong> <span id="dash-pub" class="text-xs"></span></p>
                     <p><strong>Access Token:</strong> <span id="dash-token" class="text-xs text-gray-500"></span></p>
                 </div>
-                <button id="logout-button" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 mt-6">
+
+                <!-- Wallet Actions -->
+                <div class="bg-gray-50 p-4 rounded-lg space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Your Wallet</h3>
+                    
+                    <!-- Check Balance -->
+                    <div>
+                        <button id="check-balance-button" class="w-full bg-gray-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                            Check Test Coin Balance
+                        </button>
+                        <div id="balance-display" class="mt-2 text-center text-gray-700"></div>
+                    </div>
+
+                    <!-- Create Asset -->
+                    <div>
+                        <button id="create-asset-button" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            Create 100 Test Coins
+                        </button>
+                        <div id="asset-display" class="mt-2 text-center text-gray-700 text-xs break-all"></div>
+                    </div>
+                </div>
+
+                <button id="logout-button" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 mt-8">
                     Logout
                 </button>
             </div>
@@ -120,283 +144,173 @@
 
     <script>
         // === Configuration ===
-        // The BASE_URL is removed. We will call our own API routes.
-        const allViews = ['login-view', 'register-view', 'confirm-view', 'dashboard-view'];
-        const allTabs = ['tab-login', 'tab-register', 'tab-dashboard'];
-
-        // === State Variables ===
-        let accessToken = null;
-        let usernameToConfirm = null;
-
+// ... existing code ... -->
         // === DOM Elements ===
         const loginForm = document.getElementById('login-form');
         const registerForm = document.getElementById('register-form');
         const confirmForm = document.getElementById('confirm-form');
         const logoutButton = document.getElementById('logout-button');
         const messageArea = document.getElementById('message-area');
+        // New Dashboard Elements
+        const checkBalanceButton = document.getElementById('check-balance-button');
+        const createAssetButton = document.getElementById('create-asset-button');
+        const balanceDisplay = document.getElementById('balance-display');
+        const assetDisplay = document.getElementById('asset-display');
+
 
         // === Helper Functions ===
 
-        /**
-         * The check_devvio_response function from the documentation.
-         * This will now check the response *from our own API route*.
-         * Returns: { success: bool, result: dict, error: str|null }
-         */
-        async function checkDevvioResponse(response) {
-            let result;
-            try {
-                result = await response.json();
-            } catch (e) {
-                return { success: false, result: null, error: "Failed to parse JSON response." };
-            }
-
-            if (!response.ok) {
+// ... existing code ... -->
                  return { success: false, result: null, error: `HTTP ${response.status}: ${result.message || 'Error'}` };
             }
             
-            // Now we check for the Devvio-specific error codes *within* the JSON
-            if (result && 'code' in result) {
-                const code = result.code;
-                
-                // Code 4030 is a success case for registration
-                if (code === 4030) {
-                    return { success: true, result: result, error: null };
-                }
-                
-                // Any other code is an error
-                const errorMsg = result.message || 'Unknown API error';
-                return { success: false, result: result, error: errorMsg };
-            }
-
-            // No 'code' field means success
-            return { success: true, result: result, error: null };
-        }
-
-        /**
-         * Displays a message to the user.
-         * @param {string} message The message to show.
-         * @param {'success' | 'error'} type The type of message.
-         */
-        function showMessage(message, type = 'error') {
-            messageArea.textContent = message;
-            if (type === 'error') {
-                messageArea.className = 'p-4 rounded-lg mb-6 text-sm bg-red-100 text-red-700';
-            } else {
-                messageArea.className = 'p-4 rounded-lg mb-6 text-sm bg-green-100 text-green-700';
-            }
-            messageArea.classList.remove('hidden');
-        }
-
-        /**
-         * Hides the message area.
-         */
-        function hideMessage() {
-            messageArea.classList.add('hidden');
-            messageArea.textContent = '';
-        }
-
-        /**
-         * Shows a specific view and hides all others.
-         * @param {string} viewId The ID of the view to show.
-         */
-        function showView(viewId) {
-            hideMessage();
-            allViews.forEach(id => {
-                document.getElementById(id).classList.add('hidden');
-            });
-            allTabs.forEach(id => {
-                const tab = document.getElementById(id);
-                if (tab) {
-                    tab.classList.remove('border-blue-500', 'text-blue-600');
-                    tab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-                }
-            });
-
-            document.getElementById(viewId).classList.remove('hidden');
-            
-            let activeTabId;
-            if (viewId === 'login-view') activeTabId = 'tab-login';
-            if (viewId === 'register-view') activeTabId = 'tab-register';
-            if (viewId === 'dashboard-view') activeTabId = 'tab-dashboard';
-            
-            if (activeTabId) {
-                const activeTab = document.getElementById(activeTabId);
-                activeTab.classList.add('border-blue-500', 'text-blue-600');
-                activeTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-                
-                if(activeTabId === 'tab-dashboard') {
-                    activeTab.classList.remove('hidden');
-                }
-            }
-        }
-        
-        /**
-         * Sets the loading state for a button.
-         * @param {HTMLButtonElement} button The button element.
-         * @param {boolean} isLoading Whether to show loading state.
-         */
-        function setButtonLoading(button, isLoading) {
-            if (isLoading) {
-                button.disabled = true;
-                button.innerHTML = '<span class="animate-spin">⏳</span> Processing...';
-            } else {
-                button.disabled = false;
-                button.innerHTML = button.dataset.originalText;
-            }
-        }
-
-        // === Event Handlers ===
-
-        /**
-         * Handles the registration form submission.
-         */
-        async function handleRegister(event) {
-            event.preventDefault();
-            hideMessage();
-            const button = document.getElementById('register-button');
-            button.dataset.originalText = button.innerHTML;
-            setButtonLoading(button, true);
-
-            // The API key is no longer sent from the client.
-            // The serverless function will add it.
-            const data = {
-                username: document.getElementById('reg-username').value,
-                password: document.getElementById('reg-password').value,
-                fullName: document.getElementById('reg-fullname').value,
-                email: document.getElementById('reg-email').value
-            };
-
-            try {
-                // Call our local API route
-                const response = await fetch(`/api/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                const { success, result, error } = await checkDevvioResponse(response);
-
-                if (success) {
-                    // This is the special "code: 4030" success case
-                    usernameToConfirm = result.username;
-                    showMessage(result.message || "Registration successful! Check your email.", 'success');
-                    showView('confirm-view');
-                } else {
-                    showMessage(error);
-                }
-            } catch (err) {
-                showMessage('Network error: ' + err.message);
-            } finally {
-                setButtonLoading(button, false);
-            }
-        }
-
-        /**
-         * Handles the account confirmation form submission.
-         */
-        async function handleConfirm(event) {
-            event.preventDefault();
-            hideMessage();
-            const button = document.getElementById('confirm-button');
-            button.dataset.originalText = button.innerHTML;
-            setButtonLoading(button, true);
-
-            const data = {
-                username: usernameToConfirm,
-                verifyCode: document.getElementById('confirm-code').value
-            };
-
-            try {
-                // Call our local API route
-                const response = await fetch(`/api/confirm`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                const { success, result, error } = await checkDevvioResponse(response);
-
-                if (success) {
-                    showMessage("Account confirmed successfully! Please log in.", 'success');
-                    showView('login-view');
-                    document.getElementById('login-username').value = usernameToConfirm;
-                    usernameToConfirm = null; // Clear the stored username
-                } else {
-                    showMessage(error);
-                }
-            } catch (err) {
-                showMessage('Network error: ' + err.message);
-            } finally {
-                setButtonLoading(button, false);
-            }
-        }
-
-        /**
-         * Handles the login form submission.
-         */
+// ... existing code ... -->
+// ... existing code ... -->
         async function handleLogin(event) {
             event.preventDefault();
-            hideMessage();
-            const button = document.getElementById('login-button');
-            button.dataset.originalText = button.innerHTML;
-            setButtonLoading(button, true);
-
-            const data = {
-                username: document.getElementById('login-username').value,
-                password: document.getElementById('login-password').value
-            };
-
+// ... existing code ... -->
             try {
                 // Call our local API route
                 const response = await fetch(`/api/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
+// ... existing code ... -->
                 const { success, result, error } = await checkDevvioResponse(response);
 
                 if (success) {
-                    accessToken = result.accessToken;
+                    accessToken = result.accessToken; // Store the token
                     // Populate dashboard
                     document.getElementById('dash-email').textContent = result.email;
-                    document.getElementById('dash-username').textContent = result.username;
-                    document.getElementById('dash-pub').textContent = result.pub;
+// ... existing code ... -->
                     document.getElementById('dash-token').textContent = `${result.accessToken.substring(0, 30)}...`;
                     
                     showView('dashboard-view');
+                    // Clear old wallet info
+                    balanceDisplay.textContent = '';
+                    assetDisplay.textContent = '';
                 } else {
                     showMessage(error);
                 }
-            } catch (err) {
-                showMessage('Network error: ' + err.message);
-            } finally {
-                setButtonLoading(button, false);
-            }
+// ... existing code ... -->
         }
 
         /**
          * Handles the logout button click.
          */
-        function handleLogout() {
-            accessToken = null;
-            document.getElementById('login-password').value = '';
-            document.getElementById('tab-dashboard').classList.add('hidden');
+// ... existing code ... -->
             showView('login-view');
             showMessage("You have been logged out.", 'success');
+        }
+
+        /**
+         * Handles checking the user's wallet balance.
+         */
+        async function handleCheckBalance() {
+            if (!accessToken) {
+                showMessage('You are not logged in.', 'error');
+                return;
+            }
+            hideMessage();
+            balanceDisplay.textContent = 'Checking...';
+            
+            const button = document.getElementById('check-balance-button');
+            button.dataset.originalText = button.innerHTML;
+            setButtonLoading(button, true);
+
+            try {
+                // Call our local API route, sending the access token for auth
+                const response = await fetch('/api/checkBalance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    // We send the test coin ID from the docs
+                    body: JSON.stringify({ coinIds: ["19235218356655104"] })
+                });
+
+                const { success, result, error } = await checkDevvioResponse(response);
+
+                if (success) {
+                    const balances = result.balances || [];
+                    if (balances.length > 0) {
+                        balanceDisplay.textContent = `Balance: ${balances[0].balance} ${balances[0].coinName}`;
+                    } else {
+                        balanceDisplay.textContent = 'No balance found for Test Coin.';
+                    }
+                } else {
+                    showMessage(error, 'error');
+                    balanceDisplay.textContent = '';
+                }
+
+            } catch (err) {
+                showMessage('Network error: ' + err.message, 'error');
+                balanceDisplay.textContent = '';
+            } finally {
+                setButtonLoading(button, false);
+            }
+        }
+
+        /**
+         * Handles creating a new asset.
+         */
+        async function handleCreateAsset() {
+            if (!accessToken) {
+                showMessage('You are not logged in.', 'error');
+                return;
+            }
+            hideMessage();
+            assetDisplay.textContent = 'Creating asset...';
+            
+            const button = document.getElementById('create-asset-button');
+            button.dataset.originalText = button.innerHTML;
+            setButtonLoading(button, true);
+
+            // Test coin parameters from the docs
+            const assetData = {
+                coinId: 19235218356655104,
+                amount: 100,
+                clientId: crypto.randomUUID() // Generate a unique client ID
+            };
+
+            try {
+                // Call our local API route, sending the access token
+                const response = await fetch('/api/createAsset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify(assetData)
+                });
+
+                const { success, result, error } = await checkDevvioResponse(response);
+
+                if (success) {
+                    assetDisplay.textContent = `Success! Receipt: ${result.receiptUri}`;
+                    // Automatically refresh balance after creation
+                    handleCheckBalance();
+                } else {
+                    showMessage(error, 'error');
+                    assetDisplay.textContent = '';
+                }
+
+            } catch (err) {
+                showMessage('Network error: ' + err.message, 'error');
+                assetDisplay.textContent = '';
+            } finally {
+                setButtonLoading(button, false);
+            }
         }
 
         // === Initial Setup ===
         document.addEventListener('DOMContentLoaded', () => {
             loginForm.addEventListener('submit', handleLogin);
+// ... existing code ... -->
             registerForm.addEventListener('submit', handleRegister);
             confirmForm.addEventListener('submit', handleConfirm);
             logoutButton.addEventListener('click', handleLogout);
+            // Add new dashboard listeners
+            checkBalanceButton.addEventListener('click', handleCheckBalance);
+            createAssetButton.addEventListener('click', handleCreateAsset);
             
             // Set initial view
-            showView('login-view');
-        });
-
-    </script>
-</body>
-</html>
+// ... existing code ... -->
