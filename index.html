@@ -144,7 +144,13 @@
 
     <script>
         // === Configuration ===
-// ... existing code ... -->
+        const allViews = ['login-view', 'register-view', 'confirm-view', 'dashboard-view'];
+        const allTabs = ['tab-login', 'tab-register', 'tab-dashboard'];
+
+        // === State Variables ===
+        let accessToken = null;
+        let usernameToConfirm = null;
+
         // === DOM Elements ===
         const loginForm = document.getElementById('login-form');
         const registerForm = document.getElementById('register-form');
@@ -160,26 +166,231 @@
 
         // === Helper Functions ===
 
-// ... existing code ... -->
+        /**
+         * The check_devvio_response function from the documentation.
+         * This will now check the response *from our own API route*.
+         * Returns: { success: bool, result: dict, error: str|null }
+         */
+        async function checkDevvioResponse(response) {
+            let result;
+            try {
+                result = await response.json();
+            } catch (e) {
+                return { success: false, result: null, error: "Failed to parse JSON response." };
+            }
+
+            if (!response.ok) {
                  return { success: false, result: null, error: `HTTP ${response.status}: ${result.message || 'Error'}` };
             }
             
-// ... existing code ... -->
-// ... existing code ... -->
+            // Now we check for the Devvio-specific error codes *within* the JSON
+            if (result && 'code' in result) {
+                const code = result.code;
+                
+                // Code 4030 is a success case for registration
+                if (code === 4030) {
+                    return { success: true, result: result, error: null };
+                }
+                
+                // Any other code is an error
+                const errorMsg = result.message || 'Unknown API error';
+                return { success: false, result: result, error: errorMsg };
+            }
+
+            // No 'code' field means success
+            return { success: true, result: result, error: null };
+        }
+
+        /**
+         * Displays a message to the user.
+         * @param {string} message The message to show.
+         * @param {'success' | 'error'} type The type of message.
+         */
+        function showMessage(message, type = 'error') {
+            messageArea.textContent = message;
+            if (type === 'error') {
+                messageArea.className = 'p-4 rounded-lg mb-6 text-sm bg-red-100 text-red-700';
+            } else {
+                messageArea.className = 'p-4 rounded-lg mb-6 text-sm bg-green-100 text-green-700';
+            }
+            messageArea.classList.remove('hidden');
+        }
+
+        /**
+         * Hides the message area.
+         */
+        function hideMessage() {
+            messageArea.classList.add('hidden');
+            messageArea.textContent = '';
+        }
+
+        /**
+         * Shows a specific view and hides all others.
+         * @param {string} viewId The ID of the view to show.
+         */
+        function showView(viewId) {
+            hideMessage();
+            allViews.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            allTabs.forEach(id => {
+                const tab = document.getElementById(id);
+                if (tab) {
+                    tab.classList.remove('border-blue-500', 'text-blue-600');
+                    tab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                }
+            });
+
+            document.getElementById(viewId).classList.remove('hidden');
+            
+            let activeTabId;
+            if (viewId === 'login-view') activeTabId = 'tab-login';
+            if (viewId === 'register-view') activeTabId = 'tab-register';
+            if (viewId === 'dashboard-view') activeTabId = 'tab-dashboard';
+            
+            if (activeTabId) {
+                const activeTab = document.getElementById(activeTabId);
+                activeTab.classList.add('border-blue-500', 'text-blue-600');
+                activeTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                
+                if(activeTabId === 'tab-dashboard') {
+                    activeTab.classList.remove('hidden');
+                }
+            }
+        }
+        
+        /**
+         * Sets the loading state for a button.
+         * @param {HTMLButtonElement} button The button element.
+         * @param {boolean} isLoading Whether to show loading state.
+         */
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.disabled = true;
+                button.innerHTML = '<span class="animate-spin">⏳</span> Processing...';
+            } else {
+                button.disabled = false;
+                button.innerHTML = button.dataset.originalText;
+            }
+        }
+
+        // === Event Handlers ===
+
+        /**
+         * Handles the registration form submission.
+         */
+        async function handleRegister(event) {
+            event.preventDefault();
+            hideMessage();
+            const button = document.getElementById('register-button');
+            button.dataset.originalText = button.innerHTML;
+            setButtonLoading(button, true);
+
+            // The API key is no longer sent from the client.
+            // The serverless function will add it.
+            const data = {
+                username: document.getElementById('reg-username').value,
+                password: document.getElementById('reg-password').value,
+                fullName: document.getElementById('reg-fullname').value,
+                email: document.getElementById('reg-email').value
+            };
+
+            try {
+                // Call our local API route
+                const response = await fetch(`/api/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const { success, result, error } = await checkDevvioResponse(response);
+
+                if (success) {
+                    // This is the special "code: 4030" success case
+                    usernameToConfirm = result.username;
+                    showMessage(result.message || "Registration successful! Check your email.", 'success');
+                    showView('confirm-view');
+                } else {
+                    showMessage(error);
+                }
+            } catch (err) {
+                showMessage('Network error: ' + err.message);
+            } finally {
+                setButtonLoading(button, false);
+            }
+        }
+
+        /**
+         * Handles the account confirmation form submission.
+         */
+        async function handleConfirm(event) {
+            event.preventDefault();
+            hideMessage();
+            const button = document.getElementById('confirm-button');
+            button.dataset.originalText = button.innerHTML;
+            setButtonLoading(button, true);
+
+            const data = {
+                username: usernameToConfirm,
+                verifyCode: document.getElementById('confirm-code').value
+            };
+
+            try {
+                // Call our local API route
+                const response = await fetch(`/api/confirm`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const { success, result, error } = await checkDevvioResponse(response);
+
+                if (success) {
+                    showMessage("Account confirmed successfully! Please log in.", 'success');
+                    showView('login-view');
+                    document.getElementById('login-username').value = usernameToConfirm;
+                    usernameToConfirm = null; // Clear the stored username
+                } else {
+                    showMessage(error);
+                }
+            } catch (err) {
+                showMessage('Network error: ' + err.message);
+            } finally {
+                setButtonLoading(button, false);
+            }
+        }
+
+        /**
+         * Handles the login form submission.
+         */
         async function handleLogin(event) {
             event.preventDefault();
-// ... existing code ... -->
+            hideMessage();
+            const button = document.getElementById('login-button');
+            button.dataset.originalText = button.innerHTML;
+            setButtonLoading(button, true);
+
+            const data = {
+                username: document.getElementById('login-username').value,
+                password: document.getElementById('login-password').value
+            };
+
             try {
                 // Call our local API route
                 const response = await fetch(`/api/login`, {
-// ... existing code ... -->
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
                 const { success, result, error } = await checkDevvioResponse(response);
 
                 if (success) {
                     accessToken = result.accessToken; // Store the token
                     // Populate dashboard
                     document.getElementById('dash-email').textContent = result.email;
-// ... existing code ... -->
+                    document.getElementById('dash-username').textContent = result.username;
+                    document.getElementById('dash-pub').textContent = result.pub;
                     document.getElementById('dash-token').textContent = `${result.accessToken.substring(0, 30)}...`;
                     
                     showView('dashboard-view');
@@ -189,13 +400,20 @@
                 } else {
                     showMessage(error);
                 }
-// ... existing code ... -->
+            } catch (err) {
+                showMessage('Network error: ' + err.message);
+            } finally {
+                setButtonLoading(button, false);
+            }
         }
 
         /**
          * Handles the logout button click.
          */
-// ... existing code ... -->
+        function handleLogout() {
+            accessToken = null;
+            document.getElementById('login-password').value = '';
+            document.getElementById('tab-dashboard').classList.add('hidden');
             showView('login-view');
             showMessage("You have been logged out.", 'success');
         }
@@ -304,7 +522,6 @@
         // === Initial Setup ===
         document.addEventListener('DOMContentLoaded', () => {
             loginForm.addEventListener('submit', handleLogin);
-// ... existing code ... -->
             registerForm.addEventListener('submit', handleRegister);
             confirmForm.addEventListener('submit', handleConfirm);
             logoutButton.addEventListener('click', handleLogout);
@@ -313,4 +530,9 @@
             createAssetButton.addEventListener('click', handleCreateAsset);
             
             // Set initial view
-// ... existing code ... -->
+            showView('login-view');
+        });
+
+    </script>
+</body>
+</html>
