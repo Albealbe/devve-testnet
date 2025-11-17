@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devvio Auth Portal</title>
+    <!-- Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Simple transition for view switching */
+        .view {
+            transition: opacity 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+
+    <div class="container mx-auto max-w-lg p-6 min-h-screen flex flex-col justify-center">
+        
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Devvio Auth</h1>
+
+            <!-- Message Area -->
+            <div id="message-area" class="hidden p-4 rounded-lg mb-6 text-sm"></div>
+
+            <!-- Navigation Tabs -->
+            <div class="mb-6 border-b border-gray-200">
+                <nav class="flex -mb-px">
+                    <button id="tab-login" onclick="showView('login-view')" class="tab-button border-b-2 border-blue-500 text-blue-600 py-3 px-4 font-medium">
+                        Login
+                    </button>
+                    <button id="tab-register" onclick="showView('register-view')" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-3 px-4 font-medium">
+                        Register
+                    </button>
+                    <button id="tab-dashboard" onclick="showView('dashboard-view')" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-3 px-4 font-medium hidden">
+                        Dashboard
+                    </button>
+                </nav>
+            </div>
+
+            <!-- ===== Login View ===== -->
+            <div id="login-view" class="view">
+                <form id="login-form">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="login-username" class="block text-sm font-medium text-gray-700">Username</label>
+                            <input type="text" id="login-username" required class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="login-password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="login-password" required class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" id="login-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 mt-6">
+                        Login
+                    </button>
+                </form>
+            </div>
+
+            <!-- ===== Register View ===== -->
+            <div id="register-view" class="view hidden">
+                <form id="register-form">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="reg-username" class="block text-sm font-medium text-gray-700">Username</label>
+                            <input type="text" id="reg-username" required class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., dev_user_123">
+                        </div>
+                        <div>
+                            <label for="reg-password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="reg-password" required class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="reg-fullname" class="block text-sm font-medium text-gray-700">Full Name</label>
+                            <input type="text" id="reg-fullname" required class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Jane Developer">
+                        </div>
+                        <div>
+                            <label for="reg-email" class="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="reg-email" required class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., jane@example.com">
+                        </div>
+                    </div>
+                    <button type="submit" id="register-button" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 mt-6">
+                        Register
+                    </button>
+                </form>
+            </div>
+
+            <!-- ===== Confirm Account View ===== -->
+            <div id="confirm-view" class="view hidden">
+                <h2 class="text-xl font-semibold text-center mb-4">Check Your Email!</h2>
+                <p class="text-center text-gray-600 mb-4">Enter the confirmation code sent to your email to activate your account.</p>
+                <form id="confirm-form">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="confirm-code" class="block text-sm font-medium text-gray-700">Confirmation Code</label>
+                            <input type="text" id="confirm-code" required class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="123456">
+                        </div>
+                    </div>
+                    <button type="submit" id="confirm-button" class="w-full bg-yellow-500 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 mt-6">
+                        Confirm Account
+                    </button>
+                </form>
+            </div>
+
+            <!-- ===== Dashboard View (Logged In) ===== -->
+            <div id="dashboard-view" class="view hidden">
+                <h2 class="text-2xl font-semibold text-center text-green-600 mb-4">Login Successful!</h2>
+                <div class="bg-gray-50 p-4 rounded-lg space-y-2 break-words">
+                    <p><strong>Email:</strong> <span id="dash-email"></span></p>
+                    <p><strong>Username:</strong> <span id="dash-username"></span></p>
+                    <p><strong>Wallet (pub):</strong> <span id="dash-pub" class="text-xs"></span></p>
+                    <p><strong>Access Token:</strong> <span id="dash-token" class="text-xs text-gray-500"></span></p>
+                </div>
+                <button id="logout-button" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 mt-6">
+                    Logout
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // === Configuration ===
+        // The BASE_URL is removed. We will call our own API routes.
+        const allViews = ['login-view', 'register-view', 'confirm-view', 'dashboard-view'];
+        const allTabs = ['tab-login', 'tab-register', 'tab-dashboard'];
+
+        // === State Variables ===
+        let accessToken = null;
+        let usernameToConfirm = null;
+
+        // === DOM Elements ===
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const confirmForm = document.getElementById('confirm-form');
+        const logoutButton = document.getElementById('logout-button');
+        const messageArea = document.getElementById('message-area');
+
+        // === Helper Functions ===
+
+        /**
+         * The check_devvio_response function from the documentation.
+         * This will now check the response *from our own API route*.
+         * Returns: { success: bool, result: dict, error: str|null }
+         */
+        async function checkDevvioResponse(response) {
+            let result;
+            try {
+                result = await response.json();
+            } catch (e) {
+                return { success: false, result: null, error: "Failed to parse JSON response." };
+            }
+
+            if (!response.ok) {
+                 return { success: false, result: null, error: `HTTP ${response.status}: ${result.message || 'Error'}` };
+            }
+            
+            // Now we check for the Devvio-specific error codes *within* the JSON
+            if (result && 'code' in result) {
+                const code = result.code;
+                
+                // Code 4030 is a success case for registration
+                if (code === 4030) {
+                    return { success: true, result: result, error: null };
+                }
+                
+                // Any other code is an error
+                const errorMsg = result.message || 'Unknown API error';
+                return { success: false, result: result, error: errorMsg };
+            }
+
+            // No 'code' field means success
+            return { success: true, result: result, error: null };
+        }
+
+        /**
+         * Displays a message to the user.
+         * @param {string} message The message to show.
+         * @param {'success' | 'error'} type The type of message.
+         */
+        function showMessage(message, type = 'error') {
+            messageArea.textContent = message;
+            if (type === 'error') {
+                messageArea.className = 'p-4 rounded-lg mb-6 text-sm bg-red-100 text-red-700';
+            } else {
+                messageArea.className = 'p-4 rounded-lg mb-6 text-sm bg-green-100 text-green-700';
+            }
+            messageArea.classList.remove('hidden');
+        }
+
+        /**
+         * Hides the message area.
+         */
+        function hideMessage() {
+            messageArea.classList.add('hidden');
+            messageArea.textContent = '';
+        }
+
+        /**
+         * Shows a specific view and hides all others.
+         * @param {string} viewId The ID of the view to show.
+         */
+        function showView(viewId) {
+            hideMessage();
+            allViews.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            allTabs.forEach(id => {
+                const tab = document.getElementById(id);
+                if (tab) {
+                    tab.classList.remove('border-blue-500', 'text-blue-600');
+                    tab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                }
+            });
+
+            document.getElementById(viewId).classList.remove('hidden');
+            
+            let activeTabId;
+            if (viewId === 'login-view') activeTabId = 'tab-login';
+            if (viewId === 'register-view') activeTabId = 'tab-register';
+            if (viewId === 'dashboard-view') activeTabId = 'tab-dashboard';
+            
+            if (activeTabId) {
+                const activeTab = document.getElementById(activeTabId);
+                activeTab.classList.add('border-blue-500', 'text-blue-600');
+                activeTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                
+                if(activeTabId === 'tab-dashboard') {
+                    activeTab.classList.remove('hidden');
+                }
+            }
+        }
+        
+        /**
+         * Sets the loading state for a button.
+         * @param {HTMLButtonElement} button The button element.
+         * @param {boolean} isLoading Whether to show loading state.
+         */
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.disabled = true;
+                button.innerHTML = '<span class="animate-spin">⏳</span> Processing...';
+            } else {
+                button.disabled = false;
+                button.innerHTML = button.dataset.originalText;
+            }
+        }
+
+        // === Event Handlers ===
+
+        /**
+         * Handles the registration form submission.
+         */
+        async function handleRegister(event) {
+            event.preventDefault();
+            hideMessage();
+            const button = document.getElementById('register-button');
+            button.dataset.originalText = button.innerHTML;
+            setButtonLoading(button, true);
+
+            // The API key is no longer sent from the client.
+            // The serverless function will add it.
+            const data = {
+                username: document.getElementById('reg-username').value,
+                password: document.getElementById('reg-password').value,
+                fullName: document.getElementById('reg-fullname').value,
+                email: document.getElementById('reg-email').value
+            };
+
+            try {
+                // Call our local API route
+                const response = await fetch(`/api/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const { success, result, error } = await checkDevvioResponse(response);
+
+                if (success) {
+                    // This is the special "code: 4030" success case
+                    usernameToConfirm = result.username;
+                    showMessage(result.message || "Registration successful! Check your email.", 'success');
+                    showView('confirm-view');
+                } else {
+                    showMessage(error);
+                }
+            } catch (err) {
+                showMessage('Network error: ' + err.message);
+            } finally {
+                setButtonLoading(button, false);
+            }
+        }
+
+        /**
+         * Handles the account confirmation form submission.
+         */
+        async function handleConfirm(event) {
+            event.preventDefault();
+            hideMessage();
+            const button = document.getElementById('confirm-button');
+            button.dataset.originalText = button.innerHTML;
+            setButtonLoading(button, true);
+
+            const data = {
+                username: usernameToConfirm,
+                verifyCode: document.getElementById('confirm-code').value
+            };
+
+            try {
+                // Call our local API route
+                const response = await fetch(`/api/confirm`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const { success, result, error } = await checkDevvioResponse(response);
+
+                if (success) {
+                    showMessage("Account confirmed successfully! Please log in.", 'success');
+                    showView('login-view');
+                    document.getElementById('login-username').value = usernameToConfirm;
+                    usernameToConfirm = null; // Clear the stored username
+                } else {
+                    showMessage(error);
+                }
+            } catch (err) {
+                showMessage('Network error: ' + err.message);
+            } finally {
+                setButtonLoading(button, false);
+            }
+        }
+
+        /**
+         * Handles the login form submission.
+         */
+        async function handleLogin(event) {
+            event.preventDefault();
+            hideMessage();
+            const button = document.getElementById('login-button');
+            button.dataset.originalText = button.innerHTML;
+            setButtonLoading(button, true);
+
+            const data = {
+                username: document.getElementById('login-username').value,
+                password: document.getElementById('login-password').value
+            };
+
+            try {
+                // Call our local API route
+                const response = await fetch(`/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const { success, result, error } = await checkDevvioResponse(response);
+
+                if (success) {
+                    accessToken = result.accessToken;
+                    // Populate dashboard
+                    document.getElementById('dash-email').textContent = result.email;
+                    document.getElementById('dash-username').textContent = result.username;
+                    document.getElementById('dash-pub').textContent = result.pub;
+                    document.getElementById('dash-token').textContent = `${result.accessToken.substring(0, 30)}...`;
+                    
+                    showView('dashboard-view');
+                } else {
+                    showMessage(error);
+                }
+            } catch (err) {
+                showMessage('Network error: ' + err.message);
+            } finally {
+                setButtonLoading(button, false);
+            }
+        }
+
+        /**
+         * Handles the logout button click.
+         */
+        function handleLogout() {
+            accessToken = null;
+            document.getElementById('login-password').value = '';
+            document.getElementById('tab-dashboard').classList.add('hidden');
+            showView('login-view');
+            showMessage("You have been logged out.", 'success');
+        }
+
+        // === Initial Setup ===
+        document.addEventListener('DOMContentLoaded', () => {
+            loginForm.addEventListener('submit', handleLogin);
+            registerForm.addEventListener('submit', handleRegister);
+            confirmForm.addEventListener('submit', handleConfirm);
+            logoutButton.addEventListener('click', handleLogout);
+            
+            // Set initial view
+            showView('login-view');
+        });
+
+    </script>
+</body>
+</html>
